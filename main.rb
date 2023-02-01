@@ -6,7 +6,8 @@ require "time"
 
 class EsaDumperForNotion
   class << self
-    def exec(first_page: 1)
+    def exec(q: "")
+      puts "q=>#{q}"
       json_dir = "export/json"
       html_dir = "export/html"
       markdown_dir = "export/markdown"
@@ -15,10 +16,10 @@ class EsaDumperForNotion
       FileUtils.mkdir_p markdown_dir
 
       client = Esa::Client.new(current_team: ENV["ESA_TEAM_NAME"], access_token: ENV["ESA_ACCESS_TOKEN"])
-      page = first_page
+      page = 1
 
       loop do
-        response = client.posts(include: "comments", sort: "created", order: "asc", per_page: 100, page: page)
+        response = client.posts(sort: "created", order: "asc", per_page: 100, page: page, q: q)
         body = response.body
         page = body["page"]
         next_page = body["next_page"] # nil になったとき、もう次のページは存在しない
@@ -31,7 +32,8 @@ class EsaDumperForNotion
 
         posts.each do |post|
           full_name = post["full_name"]
-          file_name = full_name.gsub("/", "::")
+          # file_name = full_name.gsub("/", "::")
+          file_name = post["name"]
           body_md = post["body_md"]
           body_html = post["body_html"]
 
@@ -39,11 +41,8 @@ class EsaDumperForNotion
           category = post["category"]
           created_at = Time.parse(post["created_at"])
           updated_at = Time.parse(post["updated_at"])
-          created_by = "#{post["created_by"]["name"]} (#{post["created_by"]["screen_name"]})"
-          updated_by = "#{post["updated_by"]["name"]} (#{post["updated_by"]["screen_name"]})"
-
-          comments_count = post["comments_count"]
-          comments = post["comments"]
+          created_by = "#{post["created_by"]["name"]}"
+          updated_by = "#{post["updated_by"]["name"]}"
 
           md_str =
             "* ID: #{id}\n" \
@@ -53,27 +52,18 @@ class EsaDumperForNotion
             "\n- - -\n\n"
           md_str += body_md
 
-          html_str =
-            "<ul>" \
-            "<li>ID: #{id}</li>" \
-            "<li>category: #{category}</li>" \
-            "<li>作成時刻: #{created_at.strftime("%Y/%m/%d %H:%M:%S")} by #{created_by}</li>" \
-            "<li>更新時刻: #{updated_at.strftime("%Y/%m/%d %H:%M:%S")} by #{updated_by}</li>" \
-            "</ul>" \
-            "\n<hr>\n"
-          html_str += parse_html_for_notion(body_html)
-
-          md_str += "\n\n- - -\n\n## コメント一覧\n\n" if comments_count > 0
-          html_str += "\n<hr>\n<h2>コメント一覧</h2>" if comments_count > 0
-          comments.each do |comment|
-            comment_created_at = Time.parse(comment["created_at"])
-            comment_created_by = "#{comment["created_by"]["name"]} (#{comment["created_by"]["screen_name"]})"
-
-            md_str += "### #{comment_created_by} at #{comment_created_at.strftime("%Y/%m/%d %H:%M:%S")}\n\n"
-            md_str += comment["body_md"] + "\n\n"
-            html_str += "<h3>#{comment_created_by} at #{comment_created_at.strftime("%Y/%m/%d %H:%M:%S")}</h3>"
-            html_str += parse_html_for_notion(comment["body_html"])
-          end
+          html_str = parse_html_for_notion(body_html)
+          attributes_str =
+            "<hr>\n" \
+            "<blockquote>\n" \
+            "  <p>\n" \
+            "    このページは esa から移行されました。<br/>\n" \
+            "    - esa ID：#{id}<br/>\n" \
+            "    - 最終更新日時：#{updated_at.strftime("%Y/%m/%d %H:%M:%S")}<br/>\n" \
+            "    - 最終更新者：#{updated_by}\n" \
+            "  </p>\n" \
+            "</blockquote>"
+          html_str += attributes_str
 
           File.open("#{markdown_dir}/#{file_name}.md", mode = "w") do |f|
             f.write(md_str)
@@ -114,5 +104,5 @@ class EsaDumperForNotion
   end
 end
 
-first_page = ARGV[0] || 1
-EsaDumperForNotion.exec(first_page: first_page)
+q = ARGV[0] || ""
+EsaDumperForNotion.exec(q: q)
