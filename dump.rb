@@ -59,7 +59,8 @@ class EsaDumperForNotion
             "  <p>\n" \
             "    このページは esa から移行されました。<br/>\n" \
             "    - esa ID：#{id}<br/>\n" \
-            "    - 最終更新日時：#{updated_at.strftime("%Y/%m/%d %H:%M:%S")}<br/>\n" \
+            "    - 作成日時：#{created_at.strftime("%Y/%m/%d %H:%M:%S")}<br/>\n" \
+            "    - 更新日時：#{updated_at.strftime("%Y/%m/%d %H:%M:%S")}<br/>\n" \
             "    - 最終更新者：#{updated_by}\n" \
             "  </p>\n" \
             "</blockquote>"
