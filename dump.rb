@@ -23,7 +23,7 @@ class EsaDumperForNotion
         body = response.body
         page = body["page"]
         next_page = body["next_page"] # nil になったとき、もう次のページは存在しない
-        posts = body["posts"]
+        posts = body["posts"].select { |p| !p["wip"] }
         posts_json = posts.to_json
 
         File.open("#{json_dir}/posts_#{page}.json", mode = "w") do |f|
